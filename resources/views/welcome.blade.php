@@ -80,12 +80,13 @@
                     @endif
                 </div>
             @endif
-
             <div class="content">
                 <div class="title m-b-md">
-                    Laravel<br /><small>Auth 3.0</small>
+                    @lang('titles.app')<br />
+                    <small>
+                        {{ trans('titles.app2', ['version' => config('settings.app_project_version')]) }}
+                    </small>
                 </div>
-
                 <div class="links">
                     <a href="https://laravel.com/docs">Documentation</a>
                     <a href="https://laracasts.com">Laracasts</a>

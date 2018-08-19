@@ -43,6 +43,10 @@ Route::group(['middleware' => ['auth', 'activated', 'activity']], function () {
     // Activation Routes
     Route::get('/activation-required', ['uses' => 'Auth\ActivateController@activationRequired'])->name('activation-required');
     Route::get('/logout', ['uses' => 'Auth\LoginController@logout'])->name('logout');
+});
+
+// Registered and Activated User Routes
+Route::group(['middleware' => ['auth', 'activated', 'activity', 'twostep']], function () {
 
     //  Homepage Route - Redirect based on user role is in controller.
     Route::get('/home', ['as' => 'public.home',   'uses' => 'UserController@index']);
@@ -55,7 +59,7 @@ Route::group(['middleware' => ['auth', 'activated', 'activity']], function () {
 });
 
 // Registered, activated, and is current user routes.
-Route::group(['middleware' => ['auth', 'activated', 'currentUser', 'activity']], function () {
+Route::group(['middleware' => ['auth', 'activated', 'currentUser', 'activity', 'twostep']], function () {
 
     // User Profile and Account Routes
     Route::resource(
@@ -92,7 +96,7 @@ Route::group(['middleware' => ['auth', 'activated', 'currentUser', 'activity']],
 });
 
 // Registered, activated, and is admin routes.
-Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity']], function () {
+Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity', 'twostep']], function () {
     Route::resource('/users/deleted', 'SoftDeletesController', [
         'only' => [
             'index', 'show', 'update', 'destroy',
@@ -108,6 +112,7 @@ Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity']], 
             'deleted',
         ],
     ]);
+    Route::post('search-users', 'UsersManagementController@search')->name('search-users');
 
     Route::resource('themes', 'ThemesManagementController', [
         'names' => [
@@ -117,6 +122,8 @@ Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity']], 
     ]);
 
     Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');
-    Route::get('php', 'AdminDetailsController@listPHPInfo');
     Route::get('routes', 'AdminDetailsController@listRoutes');
+    Route::get('active-users', 'AdminDetailsController@activeUsers');
 });
+
+Route::redirect('/php', '/phpinfo', 301);

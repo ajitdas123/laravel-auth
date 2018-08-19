@@ -58,19 +58,28 @@
 
             @include('partials.nav')
 
-            <div class="container">
+            <main class="py-4">
 
-                @include('partials.form-status')
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            @include('partials.form-status')
+                        </div>
+                    </div>
+                </div>
 
-            </div>
+                @yield('content')
 
-            @yield('content')
+            </main>
 
         </div>
 
         {{-- Scripts --}}
         <script src="{{ mix('/js/app.js') }}"></script>
-        {!! HTML::script('//maps.googleapis.com/maps/api/js?key='.env("GOOGLEMAPS_API_KEY").'&libraries=places&dummy=.js', array('type' => 'text/javascript')) !!}
+
+        @if(config('settings.googleMapsAPIStatus'))
+            {!! HTML::script('//maps.googleapis.com/maps/api/js?key='.config("settings.googleMapsAPIKey").'&libraries=places&dummy=.js', array('type' => 'text/javascript')) !!}
+        @endif
 
         @yield('footer_scripts')
 
