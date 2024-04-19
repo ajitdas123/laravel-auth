@@ -19,7 +19,7 @@
         <h4><span class="fa fa-fw fa-file-code-o" aria-hidden="true"></span> Log Files</h4>
         <div class="list-group">
           @foreach($files as $file)
-            <a href="?l={{ base64_encode($file) }}" class="list-group-item @if ($current_file == $file) llv-active @endif">
+            <a href="?l={{ \Illuminate\Support\Facades\Crypt::encrypt($file) }}" class="list-group-item @if ($current_file == $file) llv-active @endif">
               {{$file}}
               @if ($current_file == $file)
                 <span class="badge pull-right">
@@ -65,12 +65,12 @@
         @endif
         <div>
           @if($current_file)
-            <a href="?dl={{ base64_encode($current_file) }}" class="btn btn-link">
+            <a href="?dl={{ \Illuminate\Support\Facades\Crypt::encrypt($current_file) }}" class="btn btn-link">
               <i class="fa fa-download" aria-hidden="true"></i>
               Download file
             </a>
             -
-            <a id="delete-log" data-toggle="modal" data-target="#confirmDelete" data-href="?del={{ base64_encode($current_file) }}" data-title="Delete Log File" data-message="Are you sure you want to delete log file?" class="btn btn-link">
+            <a id="delete-log" data-toggle="modal" data-target="#confirmDelete" data-href="?del={{ \Illuminate\Support\Facades\Crypt::encrypt($current_file) }}" data-title="Delete Log File" data-message="Are you sure you want to delete log file?" class="btn btn-link">
               <i class="fa fa-trash-o" aria-hidden="true"></i>
               Delete file
             </a>
@@ -96,41 +96,43 @@
 
 @section('footer_scripts')
 
-  @include('scripts.datatables')
+  {{-- @include('scripts.datatables') --}}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.2/css/dataTables.bootstrap4.min.css">
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.2/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.2/js/dataTables.bootstrap4.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $.noConflict();
+          var table = $('#table-log').DataTable({
+            "order": [ 1, 'desc' ],
+            "stateSave": true,
+            "stateSaveCallback": function (settings, data) {
+              window.localStorage.setItem("datatable", JSON.stringify(data));
+            },
+            "stateLoadCallback": function (settings) {
+              var data = JSON.parse(window.localStorage.getItem("datatable"));
+              if (data) data.start = 0;
+              return data;
+            }
+          });
 
-  <script>
-    $(document).ready(function(){
-      $('#table-log').DataTable({
-        "order": [ 1, 'desc' ],
-        "stateSave": true,
-        "stateSaveCallback": function (settings, data) {
-          window.localStorage.setItem("datatable", JSON.stringify(data));
-        },
-        "stateLoadCallback": function (settings) {
-          var data = JSON.parse(window.localStorage.getItem("datatable"));
-          if (data) data.start = 0;
-          return data;
-        }
-      });
+          $('.table-container').on('click', '.expand', function(){
+            $('#' + $(this).data('display')).toggle();
+          });
 
-      $('.table-container').on('click', '.expand', function(){
-        $('#' + $(this).data('display')).toggle();
-      });
+          // Delete Logs Modal
+          $('#confirmDelete').on('show.bs.modal', function (e) {
+            var message = $(e.relatedTarget).attr('data-message');
+            var title = $(e.relatedTarget).attr('data-title');
+            var href = $(e.relatedTarget).attr('data-href');
+            $(this).find('.modal-body p').text(message);
+            $(this).find('.modal-title').text(title);
+            $(this).find('.modal-footer #confirm').data('href', href);
+          });
+          $('#confirmDelete').find('.modal-footer #confirm').on('click', function(){
+            window.location = $(this).data('href');
+          });
 
-      // Delete Logs Modal
-      $('#confirmDelete').on('show.bs.modal', function (e) {
-        var message = $(e.relatedTarget).attr('data-message');
-        var title = $(e.relatedTarget).attr('data-title');
-        var href = $(e.relatedTarget).attr('data-href');
-        $(this).find('.modal-body p').text(message);
-        $(this).find('.modal-title').text(title);
-        $(this).find('.modal-footer #confirm').data('href', href);
-      });
-      $('#confirmDelete').find('.modal-footer #confirm').on('click', function(){
-        window.location = $(this).data('href');
-      });
-
-    });
-  </script>
-
+        });
+    </script>
 @endsection

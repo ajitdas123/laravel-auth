@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteUserAccount;
+use App\Http\Requests\UpdateUserPasswordRequest;
+use App\Http\Requests\UpdateUserProfile;
 use App\Models\Profile;
 use App\Models\Theme;
 use App\Models\User;
@@ -10,7 +13,7 @@ use App\Traits\CaptureIpTrait;
 use File;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Input;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Image;
 use jeremykenedy\Uuid\Uuid;
@@ -33,31 +36,10 @@ class ProfilesController extends Controller
     }
 
     /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param array $data
-     *
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    public function profile_validator(array $data)
-    {
-        return Validator::make($data, [
-            'theme_id'         => '',
-            'location'         => '',
-            'bio'              => 'max:500',
-            'twitter_username' => 'max:50',
-            'github_username'  => 'max:50',
-            'avatar'           => '',
-            'avatar_status'    => '',
-        ]);
-    }
-
-    /**
      * Fetch user
      * (You can extract this to repository method).
      *
-     * @param $username
-     *
+     * @param  $username
      * @return mixed
      */
     public function getUserByUsername($username)
@@ -68,8 +50,7 @@ class ProfilesController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param string $username
-     *
+     * @param  string  $username
      * @return Response
      */
     public function show($username)
@@ -93,8 +74,7 @@ class ProfilesController extends Controller
     /**
      * /profiles/username/edit.
      *
-     * @param $username
-     *
+     * @param  $username
      * @return mixed
      */
     public function edit($username)
@@ -126,27 +106,21 @@ class ProfilesController extends Controller
     /**
      * Update a user's profile.
      *
-     * @param $username
+     * @param  \App\Http\Requests\UpdateUserProfile  $request
+     * @param  $username
+     * @return mixed
      *
      * @throws Laracasts\Validation\FormValidationException
-     *
-     * @return mixed
      */
-    public function update($username, Request $request)
+    public function update(UpdateUserProfile $request, $username)
     {
         $user = $this->getUserByUsername($username);
 
-        $input = Input::only('theme_id', 'location', 'bio', 'twitter_username', 'github_username', 'avatar_status');
+        $input = $request->only('theme_id', 'location', 'bio', 'twitter_username', 'github_username', 'avatar_status');
 
         $ipAddress = new CaptureIpTrait();
 
-        $profile_validator = $this->profile_validator($request->all());
-
-        if ($profile_validator->fails()) {
-            return back()->withErrors($profile_validator)->withInput();
-        }
-
-        if ($user->profile == null) {
+        if ($user->profile === null) {
             $profile = new Profile();
             $profile->fill($input);
             $user->profile()->save($profile);
@@ -155,7 +129,6 @@ class ProfilesController extends Controller
         }
 
         $user->updated_ip_address = $ipAddress->getClientIp();
-
         $user->save();
 
         return redirect('profile/'.$user->name.'/edit')->with('success', trans('profile.updateSuccess'));
@@ -164,20 +137,19 @@ class ProfilesController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int                      $id
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function updateUserAccount(Request $request, $id)
     {
         $currentUser = \Auth::user();
         $user = User::findOrFail($id);
-        $emailCheck = ($request->input('email') != '') && ($request->input('email') != $user->email);
+        $emailCheck = ($request->input('email') !== '') && ($request->input('email') !== $user->email);
         $ipAddress = new CaptureIpTrait();
         $rules = [];
 
-        if ($user->name != $request->input('name')) {
+        if ($user->name !== $request->input('name')) {
             $usernameRules = [
                 'name' => 'required|max:255|unique:users',
             ];
@@ -207,9 +179,9 @@ class ProfilesController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $user->name = $request->input('name');
-        $user->first_name = $request->input('first_name');
-        $user->last_name = $request->input('last_name');
+        $user->name = strip_tags($request->input('name'));
+        $user->first_name = strip_tags($request->input('first_name'));
+        $user->last_name = strip_tags($request->input('last_name'));
 
         if ($emailCheck) {
             $user->email = $request->input('email');
@@ -225,39 +197,21 @@ class ProfilesController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int                      $id
-     *
+     * @param  \App\Http\Requests\UpdateUserPasswordRequest  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function updateUserPassword(Request $request, $id)
+    public function updateUserPassword(UpdateUserPasswordRequest $request, $id)
     {
         $currentUser = \Auth::user();
         $user = User::findOrFail($id);
         $ipAddress = new CaptureIpTrait();
 
-        $validator = Validator::make($request->all(),
-            [
-                'password'              => 'required|min:6|max:20|confirmed',
-                'password_confirmation' => 'required|same:password',
-            ],
-            [
-                'password.required' => trans('auth.passwordRequired'),
-                'password.min'      => trans('auth.PasswordMin'),
-                'password.max'      => trans('auth.PasswordMax'),
-            ]
-        );
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        if ($request->input('password') != null) {
-            $user->password = bcrypt($request->input('password'));
+        if ($request->input('password') !== null) {
+            $user->password = Hash::make($request->input('password'));
         }
 
         $user->updated_ip_address = $ipAddress->getClientIp();
-
         $user->save();
 
         return redirect('profile/'.$user->name.'/edit')->with('success', trans('profile.updatePWSuccess'));
@@ -266,15 +220,14 @@ class ProfilesController extends Controller
     /**
      * Upload and Update user avatar.
      *
-     * @param $file
-     *
+     * @param  $file
      * @return mixed
      */
-    public function upload()
+    public function upload(Request $request)
     {
-        if (Input::hasFile('file')) {
+        if ($request->hasFile('file')) {
             $currentUser = \Auth::user();
-            $avatar = Input::file('file');
+            $avatar = $request->file('file');
             $filename = 'avatar.'.$avatar->getClientOriginalExtension();
             $save_path = storage_path().'/users/id/'.$currentUser->id.'/uploads/images/avatar/';
             $path = $save_path.$filename;
@@ -299,9 +252,8 @@ class ProfilesController extends Controller
     /**
      * Show user avatar.
      *
-     * @param $id
-     * @param $image
-     *
+     * @param  $id
+     * @param  $image
      * @return string
      */
     public function userProfileAvatar($id, $image)
@@ -312,32 +264,18 @@ class ProfilesController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int                      $id
-     *
+     * @param  \App\Http\Requests\DeleteUserAccount  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function deleteUserAccount(Request $request, $id)
+    public function deleteUserAccount(DeleteUserAccount $request, $id)
     {
         $currentUser = \Auth::user();
         $user = User::findOrFail($id);
         $ipAddress = new CaptureIpTrait();
 
-        $validator = Validator::make($request->all(),
-            [
-                'checkConfirmDelete' => 'required',
-            ],
-            [
-                'checkConfirmDelete.required' => trans('profile.confirmDeleteRequired'),
-            ]
-        );
-
-        if ($user->id != $currentUser->id) {
+        if ($user->id !== $currentUser->id) {
             return redirect('profile/'.$user->name.'/edit')->with('error', trans('profile.errorDeleteNotYour'));
-        }
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
         }
 
         // Create and encrypt user account restore token
@@ -372,9 +310,8 @@ class ProfilesController extends Controller
     /**
      * Send GoodBye Email Function via Notify.
      *
-     * @param array  $user
-     * @param string $token
-     *
+     * @param  array  $user
+     * @param  string  $token
      * @return void
      */
     public static function sendGoodbyEmail(User $user, $token)

@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
-use Auth;
 use Illuminate\Http\Request;
-use jeremykenedy\LaravelRoles\Models\Role;
 
 class SoftDeletesController extends Controller
 {
@@ -22,14 +21,13 @@ class SoftDeletesController extends Controller
     /**
      * Get Soft Deleted User.
      *
-     * @param int $id
-     *
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public static function getDeletedUser($id)
     {
         $user = User::onlyTrashed()->where('id', $id)->get();
-        if (count($user) != 1) {
+        if (count($user) !== 1) {
             return redirect('/users/deleted/')->with('error', trans('usersmanagement.errorUserNotFound'));
         }
 
@@ -52,8 +50,7 @@ class SoftDeletesController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param int $id
-     *
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
@@ -66,9 +63,8 @@ class SoftDeletesController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int                      $id
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -82,8 +78,7 @@ class SoftDeletesController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param int $id
-     *
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)

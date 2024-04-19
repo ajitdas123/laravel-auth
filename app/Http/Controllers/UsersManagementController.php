@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Profile;
+use App\Models\Role;
 use App\Models\User;
 use App\Traits\CaptureIpTrait;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use jeremykenedy\LaravelRoles\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Validator;
 
 class UsersManagementController extends Controller
@@ -30,8 +31,8 @@ class UsersManagementController extends Controller
      */
     public function index()
     {
-        $pagintaionEnabled = config('usersmanagement.enablePagination');
-        if ($pagintaionEnabled) {
+        $paginationEnabled = config('usersmanagement.enablePagination');
+        if ($paginationEnabled) {
             $users = User::paginate(config('usersmanagement.paginateListSize'));
         } else {
             $users = User::all();
@@ -50,27 +51,23 @@ class UsersManagementController extends Controller
     {
         $roles = Role::all();
 
-        $data = [
-            'roles' => $roles,
-        ];
-
-        return view('usersmanagement.create-user')->with($data);
+        return view('usersmanagement.create-user', compact('roles'));
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(),
+        $validator = Validator::make(
+            $request->all(),
             [
-                'name'                  => 'required|max:255|unique:users',
-                'first_name'            => '',
-                'last_name'             => '',
+                'name'                  => 'required|max:255|unique:users|alpha_dash',
+                'first_name'            => 'alpha_dash',
+                'last_name'             => 'alpha_dash',
                 'email'                 => 'required|email|max:255|unique:users',
                 'password'              => 'required|min:6|max:20|confirmed',
                 'password_confirmation' => 'required|same:password',
@@ -98,11 +95,11 @@ class UsersManagementController extends Controller
         $profile = new Profile();
 
         $user = User::create([
-            'name'             => $request->input('name'),
-            'first_name'       => $request->input('first_name'),
-            'last_name'        => $request->input('last_name'),
+            'name'             => strip_tags($request->input('name')),
+            'first_name'       => strip_tags($request->input('first_name')),
+            'last_name'        => strip_tags($request->input('last_name')),
             'email'            => $request->input('email'),
-            'password'         => bcrypt($request->input('password')),
+            'password'         => Hash::make($request->input('password')),
             'token'            => str_random(64),
             'admin_ip_address' => $ipAddress->getClientIp(),
             'activated'        => 1,
@@ -118,31 +115,26 @@ class UsersManagementController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param int $id
-     *
+     * @param  User  $user
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(User $user)
     {
-        $user = User::find($id);
-
-        return view('usersmanagement.show-user')->withUser($user);
+        return view('usersmanagement.show-user', compact('user'));
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param int $id
-     *
+     * @param  User  $user
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(User $user)
     {
-        $user = User::findOrFail($id);
         $roles = Role::all();
 
-        foreach ($user->roles as $user_role) {
-            $currentRole = $user_role;
+        foreach ($user->roles as $userRole) {
+            $currentRole = $userRole;
         }
 
         $data = [
@@ -157,28 +149,29 @@ class UsersManagementController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int                      $id
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  User  $user
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user)
     {
-        $currentUser = Auth::user();
-        $user = User::find($id);
-        $emailCheck = ($request->input('email') != '') && ($request->input('email') != $user->email);
+        $emailCheck = ($request->input('email') !== '') && ($request->input('email') !== $user->email);
         $ipAddress = new CaptureIpTrait();
 
         if ($emailCheck) {
             $validator = Validator::make($request->all(), [
-                'name'     => 'required|max:255|unique:users',
-                'email'    => 'email|max:255|unique:users',
-                'password' => 'present|confirmed|min:6',
+                'name'          => 'required|max:255|unique:users|alpha_dash',
+                'email'         => 'email|max:255|unique:users',
+                'first_name'    => 'alpha_dash',
+                'last_name'     => 'alpha_dash',
+                'password'      => 'present|confirmed|min:6',
             ]);
         } else {
             $validator = Validator::make($request->all(), [
-                'name'     => 'required|max:255|unique:users',
-                'password' => 'nullable|confirmed|min:6',
+                'name'          => 'required|max:255|alpha_dash|unique:users,name,'.$user->id,
+                'first_name'    => 'alpha_dash',
+                'last_name'     => 'alpha_dash',
+                'password'      => 'nullable|confirmed|min:6',
             ]);
         }
 
@@ -186,20 +179,20 @@ class UsersManagementController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $user->name = $request->input('name');
-        $user->first_name = $request->input('first_name');
-        $user->last_name = $request->input('last_name');
+        $user->name = strip_tags($request->input('name'));
+        $user->first_name = strip_tags($request->input('first_name'));
+        $user->last_name = strip_tags($request->input('last_name'));
 
         if ($emailCheck) {
             $user->email = $request->input('email');
         }
 
-        if ($request->input('password') != null) {
-            $user->password = bcrypt($request->input('password'));
+        if ($request->input('password') !== null) {
+            $user->password = Hash::make($request->input('password'));
         }
 
         $userRole = $request->input('role');
-        if ($userRole != null) {
+        if ($userRole !== null) {
             $user->detachAllRoles();
             $user->attachRole($userRole);
         }
@@ -224,17 +217,15 @@ class UsersManagementController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param int $id
-     *
+     * @param  User  $user
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(User $user)
     {
         $currentUser = Auth::user();
-        $user = User::findOrFail($id);
         $ipAddress = new CaptureIpTrait();
 
-        if ($user->id != $currentUser->id) {
+        if ($user->id !== $currentUser->id) {
             $user->deleted_ip_address = $ipAddress->getClientIp();
             $user->save();
             $user->delete();
@@ -248,8 +239,7 @@ class UsersManagementController extends Controller
     /**
      * Method to search the users.
      *
-     * @param Request $request
-     *
+     * @param  Request  $request
      * @return \Illuminate\Http\Response
      */
     public function search(Request $request)

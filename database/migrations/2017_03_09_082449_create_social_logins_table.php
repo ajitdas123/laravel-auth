@@ -11,15 +11,18 @@ class CreateSocialLoginsTable extends Migration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('social_logins', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->string('provider', 50);
+            // Structure
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('user_id')->unsigned()->index();
+            $table->string('provider', 100);
             $table->text('social_id');
             $table->timestamps();
+
+            // Relationships
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -28,7 +31,7 @@ class CreateSocialLoginsTable extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('social_logins');
     }

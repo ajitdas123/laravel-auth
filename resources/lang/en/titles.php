@@ -4,6 +4,7 @@ return [
 
     'app'               => 'Laravel',
     'app2'              => 'Auth :version',
+    'auth'              => 'Auth',
     'home'              => 'Home',
     'login'             => 'Login',
     'logout'            => 'Logout',
@@ -33,4 +34,7 @@ return [
     'adminRoutes'       => 'Routing Details',
 
     'activeUsers'       => 'Active Users',
+    'laravelBlocker'    => 'Blocker',
+
+    'laravelroles'      => 'Roles Administration',
 ];

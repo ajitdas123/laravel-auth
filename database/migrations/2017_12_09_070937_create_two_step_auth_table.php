@@ -12,17 +12,17 @@ class CreateTwoStepAuthTable extends Migration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
         $twoStepAuth = new TwoStepAuth();
         $connection = $twoStepAuth->getConnectionName();
         $table = $twoStepAuth->getTableName();
         $tableCheck = Schema::connection($connection)->hasTable($table);
 
-        if (!$tableCheck) {
+        if (! $tableCheck) {
             Schema::connection($connection)->create($table, function (Blueprint $table) {
                 $table->increments('id');
-                $table->integer('userId')->unsigned()->index();
+                $table->unsignedBigInteger('userId')->unsigned()->index();
                 $table->foreign('userId')->references('id')->on('users')->onDelete('cascade');
                 $table->string('authCode')->nullable();
                 $table->integer('authCount');
@@ -39,7 +39,7 @@ class CreateTwoStepAuthTable extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
         $twoStepAuth = new TwoStepAuth();
         $connection = $twoStepAuth->getConnectionName();

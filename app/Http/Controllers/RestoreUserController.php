@@ -21,9 +21,8 @@ class RestoreUserController extends ProfilesController
     /**
      * User Account Restore.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param string                   $token
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $token
      * @return \Illuminate\Http\Response
      */
     public function userReActivate(Request $request, $token)
@@ -42,7 +41,7 @@ class RestoreUserController extends ProfilesController
         $userId = $level1[0][1] / $userIdKey;
         $user = SoftDeletesController::getDeletedUser($userId);
 
-        if (!is_object($user)) {
+        if (! is_object($user)) {
             abort(500);
         }
 

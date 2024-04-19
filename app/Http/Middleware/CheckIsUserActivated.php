@@ -3,24 +3,22 @@
 namespace App\Http\Middleware;
 
 use App\Models\Activation;
-use Auth;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Response;
 
 class CheckIsUserActivated
 {
     /**
      * Handle an incoming request.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Closure                 $next
-     *
-     * @return mixed
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
         if (config('settings.activation')) {
             $user = Auth::user();
@@ -39,7 +37,7 @@ class CheckIsUserActivated
                 'welcome',
             ];
 
-            if (!in_array($currentRoute, $routesAllowed)) {
+            if (! in_array($currentRoute, $routesAllowed)) {
                 if ($user && $user->activated != 1) {
                     Log::info('Non-activated user attempted to visit '.$currentRoute.'. ', [$user]);
 
@@ -63,7 +61,7 @@ class CheckIsUserActivated
 
             if (in_array($currentRoute, $routesAllowed)) {
                 if ($user && $user->activated == 1) {
-                    Log::info('Activated user attempted to visit '.$currentRoute.'. ', [$user]);
+                    // Log::info('Activated user attempted to visit '.$currentRoute.'. ', [$user]);
 
                     if ($user->isAdmin()) {
                         return redirect('home');
@@ -72,7 +70,7 @@ class CheckIsUserActivated
                     return redirect('home');
                 }
 
-                if (!$user) {
+                if (! $user) {
                     Log::info('Non registered visit to '.$currentRoute.'. ');
 
                     return redirect()->route('welcome');
